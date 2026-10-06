@@ -1,0 +1,13 @@
+{
+  "version": "1.0",
+  "enforceOnPR": true,
+  "requiredFields": ["id", "title", "status", "date", "authors", "tags"],
+  "allowedStatuses": ["Proposed", "Accepted", "Rejected", "Superseded", "Deprecated"],
+  "rules": [
+    {
+      "id": "RULE-SEC-01",
+      "severity": "error",
+      "requiredSection": "Consequences"
+    }
+  ]
+}

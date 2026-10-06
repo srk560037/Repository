@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="en" class="dark h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADR Governance Studio - Enterprise Architecture Management Platform</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        },
+                        brand: {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'Monaco', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- js-yaml CDN for client-side YAML parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <style>
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .terminal-glow {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.15);
+        }
+        .graph-grid {
+            background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans h-full flex flex-col overflow-hidden">
+
+    <!-- Application Navigation Bar -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-6 py-3 flex items-center justify-between z-20 flex-shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="p-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-lg">
+                <i data-lucide="file-check-2" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                    ADR Governance Studio
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono">v2.4.0</span>
+                </h1>
+                <p class="text-xs text-slate-400">Enterprise Architecture Decision Records & Governance Suite</p>
+            </div>
+        </div>
+
+        <!-- Global Phase Tabs -->
+        <nav class="flex items-center space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <button onclick="switchTab('phase1')" id="tab-btn-phase1" class="phase-tab flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-blue-600 text-white shadow-sm">
+                <i data-lucide="terminal" class="w-4 h-4"></i>
+                <span>Phase 1: CLI & Schema</span>
+            </button>
+            <button onclick="switchTab('phase2')" id="tab-btn-phase2" class="phase-tab flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                <i data-lucide="shield-check" class="w-4 h-4"></i>
+                <span>Phase 2: CI/CD Governance</span>
+            </button>
+            <button onclick="switchTab('phase3')" id="tab-btn-phase3" class="phase-tab flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                <i data-lucide="git-graph" class="w-4 h-4"></i>
+                <span>Phase 3: Decision Graph</span>
+            </button>
+            <button onclick="switchTab('phase4')" id="tab-btn-phase4" class="phase-tab flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                <i data-lucide="bot" class="w-4 h-4"></i>
+                <span>Phase 4: AI Assistant</span>
+            </button>
+            <button onclick="switchTab('source-code')" id="tab-btn-source-code" class="phase-tab flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium text-amber-400 hover:bg-amber-400/10 transition-all border border-amber-500/20">
+                <i data-lucide="code-2" class="w-4 h-4"></i>
+                <span>Source Code Vault</span>
+            </button>
+        </nav>
+
+        <!-- Stats Counter Summary -->
+        <div class="hidden xl:flex items-center space-x-4 text-xs font-mono border-l border-slate-800 pl-4">
+            <div class="text-right">
+                <div class="text-slate-400">Total ADRs</div>
+                <div class="font-bold text-white" id="stat-total-adrs">5</div>
+            </div>
+            <div class="text-right">
+                <div class="text-slate-400">Active / Accepted</div>
+                <div class="font-bold text-emerald-400" id="stat-accepted-adrs">3</div>
+            </div>
+            <div class="text-right">
+                <div class="text-slate-400">Linter Health</div>
+                <div class="font-bold text-blue-400">100% Passed</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Area -->
+    <main class="flex-1 relative overflow-hidden bg-slate-950 p-4">
+
+        <!-- PHASE 1 PANEL -->
+        <div id="panel-phase1" class="phase-panel h-full flex flex-col gap-4">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 h-full min-h-0">
+                
+                <!-- Left Column: Interactive Terminal Simulator -->
+                <div class="lg:col-span-6 flex flex-col bg-slate-900 border border-slate-800 rounded-xl overflow-hidden terminal-glow">
+                    <div class="bg-slate-850 px-4 py-2 border-b border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-3 h-3 rounded-full bg-red-500/80 inline-block"></span>
+                            <span class="w-3 h-3 rounded-full bg-yellow-500/80 inline-block"></span>
+                            <span class="w-3 h-3 rounded-full bg-green-500/80 inline-block"></span>
+                            <span class="text-xs font-mono text-slate-400 ml-2">adr-cli v1.0.4 - zsh</span>
+                        </div>
+                        <button onclick="clearTerminal()" class="text-xs text-slate-400 hover:text-white font-mono flex items-center gap-1">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i> Clear
+                        </button>
+                    </div>
+                    
+                    <!-- Terminal Console Output -->
+                    <div id="terminal-output" class="flex-1 p-4 font-mono text-xs overflow-y-auto space-y-2 bg-slate-950 text-slate-200">
+                        <div class="text-slate-500"># ADR Governance CLI Core Engine Ready</div>
+                        <div class="text-slate-500"># Type 'adr help' or click interactive command chips below</div>
+                        <div class="text-blue-400">$ adr status</div>
+                        <div>Current Repository: <span class="text-emerald-400">git@github.com:enterprise/core-services.git</span></div>
+                        <div>ADR Directory: <span class="text-amber-300">./docs/architecture/decisions/</span></div>
+                        <div>Total Indexed ADRs: <span class="text-white">5</span></div>
+                    </div>
+
+                    <!-- Command Buttons Toolbar -->
+                    <div class="p-2 bg-slate-900 border-t border-slate-800 flex flex-wrap gap-2 text-xs">
+                        <button onclick="runCommand('adr init')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-blue-400 rounded font-mono border border-slate-700 transition">adr init</button>
+                        <button onclick="runCommand('adr new \&quot;Implement GraphQL Edge Proxy\&quot;')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-400 rounded font-mono border border-slate-700 transition">adr new "Title"</button>
+                        <button onclick="runCommand('adr lint')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-purple-400 rounded font-mono border border-slate-700 transition">adr lint</button>
+                        <button onclick="runCommand('adr supersede ADR-0001 ADR-0002')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded font-mono border border-slate-700 transition">adr supersede</button>
+                        <button onclick="runCommand('adr graph --export svg')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded font-mono border border-slate-700 transition">adr graph</button>
+                    </div>
+
+                    <!-- Terminal Prompt Input -->
+                    <div class="p-3 bg-slate-900 border-t border-slate-800 flex items-center space-x-2">
+                        <span class="text-emerald-400 font-mono text-xs font-bold">$</span>
+                        <input type="text" id="terminal-input" onkeydown="handleTerminalKey(event)" placeholder="Type adr command (e.g. adr new, adr lint)..." class="flex-1 bg-transparent text-xs font-mono text-white focus:outline-none placeholder-slate-600">
+                        <button onclick="submitTerminalInput()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs font-mono">Run</button>
+                    </div>
+                </div>
+
+                <!-- Right Column: Live Markdown & Frontmatter Inspector -->
+                <div class="lg:col-span-6 flex flex-col bg-slate-900 border border-slate-800 rounded-xl overflow-hidden min-h-0">
+                    <div class="bg-slate-850 px-4 py-2 border-b border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="file-code-2" class="w-4 h-4 text-blue-400"></i>
+                            <span class="text-xs font-semibold text-white">Active ADR Markdown & Frontmatter Schema</span>
+                        </div>
+                        <select id="adr-selector" onchange="loadADRIntoEditor(this.value)" class="bg-slate-800 text-xs font-mono text-slate-200 border border-slate-700 rounded px-2 py-1 focus:outline-none">
+                            <option value="ADR-0001">ADR-0001: Event-Driven Kafka Architecture</option>
+                            <option value="ADR-0002">ADR-0002: AWS Bedrock RAG Engine</option>
+                            <option value="ADR-0003">ADR-0003: Postgres Aurora Consolidation</option>
+                            <option value="ADR-0004">ADR-0004: Redis Cluster Caching Strategy</option>
+                            <option value="ADR-0005">ADR-0005: OAuth2 OpenID Security Specs</option>
+                        </select>
+                    </div>
+
+                    <!-- Editor Area -->
+                    <div class="flex-1 p-4 flex flex-col gap-3 overflow-hidden bg-slate-950">
+                        <div class="flex-1 flex flex-col min-h-0">
+                            <label class="text-xs font-mono text-slate-400 mb-1 flex items-center justify-between">
+                                <span>YAML FRONTMATTER & CONTENT EDITOR</span>
+                                <span id="schema-status" class="text-emerald-400 font-sans flex items-center gap-1"><i data-lucide="check-circle" class="w-3 h-3"></i> Valid Schema</span>
+                            </label>
+                            <textarea id="adr-editor-content" oninput="validateActiveEditorSchema()" class="flex-1 bg-slate-900 border border-slate-800 rounded-lg p-3 font-mono text-xs text-slate-200 focus:outline-none focus:border-blue-500/50 resize-none leading-relaxed"></textarea>
+                        </div>
+
+                        <!-- Parsing Feedback Box -->
+                        <div class="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono flex items-start gap-2 text-slate-300">
+                            <i data-lucide="info" class="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5"></i>
+                            <div>
+                                <span class="font-bold text-white">Schema Validator:</span> All ADR files must specify <code class="text-amber-300">id</code>, <code class="text-amber-300">status</code>, <code class="text-amber-300">authors</code>, and <code class="text-amber-300">compliance_rules</code>. The linter enforces frontmatter validity before Git merge.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- PHASE 2 PANEL -->
+        <div id="panel-phase2" class="phase-panel h-full hidden flex-col gap-4">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 h-full min-h-0">
+                
+                <!-- Left Column: Governance Policy YAML Editor -->
+                <div class="lg:col-span-5 flex flex-col bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                    <div class="bg-slate-850 px-4 py-2 border-b border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="sliders" class="w-4 h-4 text-purple-400"></i>
+                            <span class="text-xs font-semibold text-white">Enterprise Policy Config (<code class="text-amber-300">governance.yaml</code>)</span>
+                        </div>
+                        <button onclick="resetPolicyRules()" class="text-xs text-slate-400 hover:text-white font-mono">Reset Defaults</button>
+                    </div>
+
+                    <div class="p-4 flex-1 flex flex-col gap-3 bg-slate-950 overflow-hidden">
+                        <textarea id="policy-editor" class="flex-1 bg-slate-900 border border-slate-800 rounded-lg p-3 font-mono text-xs text-purple-200 focus:outline-none focus:border-purple-500/50 resize-none leading-relaxed">version: "1.0"
+governance_rules:
+  - id: RULE-SEC-01
+    name: Security Section Mandatory
+    description: Any ADR tagged with 'security' or 'storage' must include a Security Risk Assessment section.
+    tag_trigger: ["security", "storage"]
+    required_section: "Security Risk Assessment"
+    severity: ERROR
+
+  - id: RULE-LFC-02
+    name: No Deprecated ADR Deployment
+    description: Production Pull Requests cannot reference ADRs in 'Deprecated' or 'Superseded' state.
+    disallowed_statuses: ["Deprecated", "Superseded"]
+    severity: ERROR
+
+  - id: RULE-AUTH-03
+    name: Enterprise Author Validation
+    description: ADR must have at least one valid principal architect author listed.
+    min_authors: 1
+    severity: WARNING
+</textarea>
+                        
+                        <div class="space-y-2">
+                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Quick Policy Toggles</span>
+                            <div class="space-y-1.5 text-xs">
+                                <label class="flex items-center justify-between p-2 rounded bg-slate-900 border border-slate-800 cursor-pointer hover:bg-slate-850">
+                                    <span class="text-slate-300">Strict Security Section Check</span>
+                                    <input type="checkbox" id="toggle-rule-sec" checked onchange="triggerLinterSimulation()" class="rounded border-slate-700 bg-slate-800 text-blue-600 focus:ring-0">
+                                </label>
+                                <label class="flex items-center justify-between p-2 rounded bg-slate-900 border border-slate-800 cursor-pointer hover:bg-slate-850">
+                                    <span class="text-slate-300">Require Security Assessment for Cloud Infra</span>
+                                    <input type="checkbox" id="toggle-rule-cloud" checked onchange="triggerLinterSimulation()" class="rounded border-slate-700 bg-slate-800 text-blue-600 focus:ring-0">
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Simulated PR Runner & GitHub Actions Check Output -->
+                <div class="lg:col-span-7 flex flex-col bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                    <div class="bg-slate-850 px-4 py-2 border-b border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="git-pull-request" class="w-4 h-4 text-emerald-400"></i>
+                            <span class="text-xs font-semibold text-white">CI/CD GitHub Action Linter Simulation</span>
+                        </div>
+                        <button onclick="triggerLinterSimulation()" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-mono flex items-center gap-1 transition">
+                            <i data-lucide="play" class="w-3 h-3"></i> Run Pipeline
+                        </button>
+                    </div>
+
+                    <div class="p-4 flex-1 flex flex-col gap-4 bg-slate-950 overflow-y-auto">
+                        <!-- PR Simulation Header -->
+                        <div class="p-3 bg-slate-900 rounded-lg border border-slate-800 flex items-center justify-between">
+                            <div>
+                                <div class="text-xs font-bold text-white flex items-center gap-2">
+                                    <span class="text-emerald-400 font-mono">PR #142:</span> Refactor Payment Gateway to AWS Bedrock RAG
+                                </div>
+                                <div class="text-xs text-slate-400 mt-0.5">Author: <code class="text-blue-400">senthil-raj</code> • Target Branch: <code class="text-slate-300">main</code></div>
+                            </div>
+                            <span id="pipeline-status-badge" class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                PIPELINE PASSED
+                            </span>
+                        </div>
+
+                        <!-- Pipeline Execution Logs -->
+                        <div class="flex-1 bg-slate-900 rounded-lg border border-slate-800 p-4 font-mono text-xs space-y-3 overflow-y-auto">
+                            <div class="text-slate-400 flex items-center gap-2">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+                                <span>[Step 1/3] Fetching altered files in commit <code class="text-slate-200">8f3a9d1</code>... Found 1 ADR file.</span>
+                            </div>
+                            <div class="text-slate-400 flex items-center gap-2">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+                                <span>[Step 2/3] Validating Markdown YAML Frontmatter against Schema v1...</span>
+                            </div>
+                            
+                            <!-- Dynamic Linter Test Results -->
+                            <div id="linter-results-container" class="space-y-2 border-t border-b border-slate-800 py-3 my-2">
+                                <!-- Populated dynamically by JS -->
+                            </div>
+
+                            <div class="text-slate-400 flex items-center gap-2">
+                                <i data-lucide="terminal" class="w-4 h-4 text-blue-400"></i>
+                                <span>[Step 3/3] Generating SARIF security report artifact: <code class="text-amber-300">./results.sarif</code></span>
+                            </div>
+                        </div>
+
+                        <!-- SARIF Output Download / View -->
+                        <div class="p-3 rounded-lg bg-blue-950/30 border border-blue-500/20 text-xs text-blue-300 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="shield-alert" class="w-4 h-4 text-blue-400"></i>
+                                <span>GitHub Security Code Scanning SARIF report ready for commit status API.</span>
+                            </div>
+                            <button onclick="exportSARIF()" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-mono">Export SARIF</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- PHASE 3 PANEL -->
+        <div id="panel-phase3" class="phase-panel h-full hidden flex-col gap-4">
+            <!-- Phase 3 Controls & Filters -->
+            <div class="bg-slate-900 border border-slate-800 p-3 rounded-xl flex flex-wrap items-center justify-between gap-3 flex-shrink-0">
+                <div class="flex items-center space-x-3">
+                    <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                        <i data-lucide="filter" class="w-4 h-4 text-blue-400"></i> Views:
+                    </span>
+                    <button onclick="setPhase3View('graph')" id="btn-view-graph" class="px-3 py-1 bg-blue-600 text-white rounded text-xs font-medium shadow-sm transition">
+                        Interactive SVG Graph
+                    </button>
+                    <button onclick="setPhase3View('kanban')" id="btn-view-kanban" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-medium transition">
+                        Lifecycle Kanban Board
+                    </button>
+                </div>
+
+                <!-- Status Filters -->
+                <div class="flex items-center space-x-2 text-xs">
+                    <span class="text-slate-400">Status Filter:</span>
+                    <button onclick="filterADRGraph('ALL')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200">All</button>
+                    <button onclick="filterADRGraph('Accepted')" class="px-2 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Accepted</button>
+                    <button onclick="filterADRGraph('Proposed')" class="px-2 py-1 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">Proposed</button>
+                    <button onclick="filterADRGraph('Superseded')" class="px-2 py-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">Superseded</button>
+                </div>
+            </div>
+
+            <!-- View 1: SVG Graph Container -->
+            <div id="phase3-graph-container" class="flex-1 bg-slate-900 border border-slate-800 rounded-xl relative overflow-hidden graph-grid flex flex-col">
+                <div class="absolute top-3 right-3 z-10 bg-slate-950/80 backdrop-blur p-2 rounded border border-slate-800 text-xs font-mono text-slate-400 space-y-1">
+                    <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Accepted</div>
+                    <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-blue-400"></span> Proposed</div>
+                    <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> Superseded</div>
+                    <div class="flex items-center gap-2"><span class="w-2 border-b-2 border-dashed border-amber-400"></span> Links: Supersedes / Relates</div>
+                </div>
+
+                <!-- SVG Graph Render Engine -->
+                <svg id="adr-svg-graph" class="w-full h-full min-h-[450px]" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Lines & Nodes dynamically generated via JS -->
+                </svg>
+            </div>
+
+            <!-- View 2: Lifecycle Kanban Board Container (Hidden by default) -->
+            <div id="phase3-kanban-container" class="flex-1 hidden grid grid-cols-1 md:grid-cols-4 gap-4 overflow-y-auto">
+                <!-- Proposed Column -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col gap-3">
+                    <div class="flex items-center justify-between pb-2 border-b border-slate-800 text-xs font-bold text-blue-400">
+                        <span class="flex items-center gap-1.5"><i data-lucide="circle-dot" class="w-4 h-4"></i> PROPOSED</span>
+                        <span class="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 font-mono" id="count-proposed">1</span>
+                    </div>
+                    <div id="kanban-proposed" class="flex-1 space-y-2 min-h-[200px]"></div>
+                </div>
+
+                <!-- Accepted Column -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col gap-3">
+                    <div class="flex items-center justify-between pb-2 border-b border-slate-800 text-xs font-bold text-emerald-400">
+                        <span class="flex items-center gap-1.5"><i data-lucide="check-circle" class="w-4 h-4"></i> ACCEPTED</span>
+                        <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-mono" id="count-accepted">3</span>
+                    </div>
+                    <div id="kanban-accepted" class="flex-1 space-y-2 min-h-[200px]"></div>
+                </div>
+
+                <!-- Superseded Column -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col gap-3">
+                    <div class="flex items-center justify-between pb-2 border-b border-slate-800 text-xs font-bold text-amber-400">
+                        <span class="flex items-center gap-1.5"><i data-lucide="git-compare" class="w-4 h-4"></i> SUPERSEDED</span>
+                        <span class="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 font-mono" id="count-superseded">1</span>
+                    </div>
+                    <div id="kanban-superseded" class="flex-1 space-y-2 min-h-[200px]"></div>
+                </div>
+
+                <!-- Deprecated Column -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col gap-3">
+                    <div class="flex items-center justify-between pb-2 border-b border-slate-800 text-xs font-bold text-red-400">
+                        <span class="flex items-center gap-1.5"><i data-lucide="x-circle" class="w-4 h-4"></i> DEPRECATED</span>
+                        <span class="px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-300 font-mono" id="count-deprecated">0</span>
+                    </div>
+                    <div id="kanban-deprecated" class="flex-1 space-y-2 min-h-[200px]"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PHASE 4 PANEL -->
+        <div id="panel-phase4" class="phase-panel h-full hidden flex-col gap-4">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 h-full min-h-0">
+                
+                <!-- Left Column: AI Query & Chat Assistant -->
+                <div class="lg:col-span-6 flex flex-col bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                    <div class="bg-slate-850 px-4 py-2 border-b border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="sparkles" class="w-4 h-4 text-purple-400"></i>
+                            <span class="text-xs font-semibold text-white">AI Architecture Knowledge RAG Assistant</span>
+                        </div>
+                        <span class="text-xs font-mono text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">Vector RAG: 5 Indexed Docs</span>
+                    </div>
+
+                    <!-- Chat Logs -->
+                    <div id="ai-chat-logs" class="flex-1 p-4 bg-slate-950 overflow-y-auto space-y-4 text-xs font-sans">
+                        <div class="flex items-start space-x-3">
+                            <div class="p-2 rounded-lg bg-purple-600/20 text-purple-400 border border-purple-500/30 flex-shrink-0">
+                                <i data-lucide="bot" class="w-4 h-4"></i>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800 rounded-lg p-3 text-slate-200 max-w-[85%]">
+                                Hello! I am your Enterprise Architecture RAG Bot. I have ingested your architecture decision repository. Ask me anything about your tech stack choices, trade-offs, or conflicts.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Suggested Prompts -->
+                    <div class="p-2 bg-slate-900 border-t border-slate-800 flex items-center gap-1.5 overflow-x-auto text-xs">
+                        <span class="text-slate-500 text-[10px] uppercase font-mono px-1">Prompts:</span>
+                        <button onclick="askAIPrompt('Summarize why we selected Kafka for event messaging')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-purple-300 rounded whitespace-nowrap border border-slate-700">Kafka Selection Rationale?</button>
+                        <button onclick="askAIPrompt('Are there any conflicting database decisions?')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-purple-300 rounded whitespace-nowrap border border-slate-700">Database Decisions Conflict?</button>
+                    </div>
+
+                    <!-- Input Box -->
+                    <div class="p-3 bg-slate-900 border-t border-slate-800 flex items-center space-x-2">
+                        <input type="text" id="ai-chat-input" onkeydown="handleAIKey(event)" placeholder="Ask architecture question across historical ADRs..." class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
+                        <button onclick="sendAIChatQuery()" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1">
+                            <span>Ask</span> <i data-lucide="send" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Column: Automated AI ADR Drafter -->
+                <div class="lg:col-span-6 flex flex-col bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                    <div class="bg-slate-850 px-4 py-2 border-b border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="wand-2" class="w-4 h-4 text-emerald-400"></i>
+                            <span class="text-xs font-semibold text-white">AI ADR Auto-Drafter (Meeting Notes -> ADR)</span>
+                        </div>
+                        <button onclick="generateADRFromNotes()" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-mono flex items-center gap-1">
+                            <i data-lucide="sparkles" class="w-3 h-3"></i> Draft ADR
+                        </button>
+                    </div>
+
+                    <div class="p-4 flex-1 flex flex-col gap-3 bg-slate-950 overflow-hidden">
+                        <div class="flex-1 flex flex-col">
+                            <label class="text-xs font-mono text-slate-400 mb-1">RAW MEETING / TECHNICAL NOTES INPUT</label>
+                            <textarea id="ai-draft-notes" class="flex-1 bg-slate-900 border border-slate-800 rounded-lg p-3 font-mono text-xs text-slate-200 focus:outline-none focus:border-emerald-500/50 resize-none">We met today to discuss adopting Redis Cluster v7 for distributed session caching and API rate limiting across our core microservices.
+Key points:
+- Redis provides sub-millisecond response time required for user auth middleware.
+- AWS ElastiCache for Redis will be managed by DevOps team.
+- Security requirement: Enforce TLS in-transit encryption and KMS static key encryption.
+- Tradeoff: Adds $350/mo cloud cost, but eliminates database bottleneck.
+- Authors: Senthil Raj, Senior Platform Architect.</textarea>
+                        </div>
+
+                        <div class="flex-1 flex flex-col min-h-0">
+                            <label class="text-xs font-mono text-slate-400 mb-1 flex items-center justify-between">
+                                <span>GENERATED ADR MARKDOWN OUTPUT</span>
+                                <button onclick="copyGeneratedDraft()" class="text-blue-400 hover:text-blue-300 text-[11px] flex items-center gap-1"><i data-lucide="copy" class="w-3 h-3"></i> Copy Draft</button>
+                            </label>
+                            <textarea id="ai-draft-output" readonly placeholder="Click 'Draft ADR' above to convert raw meeting notes into standard structured YAML + Markdown ADR format..." class="flex-1 bg-slate-900 border border-slate-800 rounded-lg p-3 font-mono text-xs text-emerald-300 focus:outline-none resize-none leading-relaxed"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- SOURCE CODE VAULT PANEL -->
+        <div id="panel-source-code" class="phase-panel h-full hidden flex-col gap-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl flex-1 flex flex-col overflow-hidden">
+                <div class="bg-slate-850 px-4 py-2 border-b border-slate-800 flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <i data-lucide="code" class="w-5 h-5 text-amber-400"></i>
+                        <span class="text-sm font-bold text-white">Full Implementation Source Code Vault</span>
+                    </div>
+                    
+                    <!-- Code Tab Switches -->
+                    <div class="flex items-center space-x-1 font-mono text-xs">
+                        <button onclick="switchCodeTab('go-cli')" id="code-btn-go-cli" class="code-tab px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded">main.go (Go CLI)</button>
+                        <button onclick="switchCodeTab('github-action')" id="code-btn-github-action" class="code-tab px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded">action.yml (CI/CD)</button>
+                        <button onclick="switchCodeTab('react-flow')" id="code-btn-react-flow" class="code-tab px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded">DecisionGraph.tsx</button>
+                        <button onclick="switchCodeTab('python-rag')" id="code-btn-python-rag" class="code-tab px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded">rag_engine.py</button>
+                    </div>
+                </div>
+
+                <!-- Source Code Viewer Container -->
+                <div class="flex-1 bg-slate-950 p-4 overflow-y-auto font-mono text-xs leading-relaxed text-slate-200">
+                    
+                    <!-- Go CLI Code Block -->
+                    <pre id="code-block-go-cli" class="code-view"><code class="text-amber-200">// Phase 1 Core Engine: Go CLI Binary for Parsing & Linting ADR Markdown Files
+package main
+
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
+	"gopkg.in/yaml.v3"
+)
+
+type ADRFrontmatter struct {
+	ID              string   `yaml:"id"`
+	Title           string   `yaml:"title"`
+	Status          string   `yaml:"status"`
+	Date            string   `yaml:"date"`
+	Authors         []string `yaml:"authors"`
+	Tags            []string `yaml:"tags"`
+	ComplianceRules []struct {
+		RuleID      string `yaml:"rule_id"`
+		Description string `yaml:"description"`
+	} `yaml:"compliance_rules"`
+}
+
+func main() {
+	if len(os.Args) < 2 {
+		fmt.Println("Usage: adr <command> [args]")
+		os.Exit(1)
+	}
+
+	cmd := os.Args[1]
+	switch cmd {
+	case "init":
+		os.MkdirAll("docs/architecture/decisions", 0755)
+		fmt.Println("✔ Initialized ADR repository structure at ./docs/architecture/decisions")
+	case "lint":
+		lintADRFiles()
+	default:
+		fmt.Printf("Unknown command: %s\n", cmd)
+	}
+}
+
+func lintADRFiles() {
+	files, _ := filepath.Glob("docs/architecture/decisions/*.md")
+	fmt.Printf("Linting %d ADR Markdown documents...\n", len(files))
+	for _, file := range files {
+		content, _ := ioutil.ReadFile(file)
+		parts := strings.Split(string(content), "---")
+		if len(parts) < 3 {
+			fmt.Printf("❌ %s: Missing YAML frontmatter bounds\n", file)
+			continue
+		}
+		var meta ADRFrontmatter
+		err := yaml.Unmarshal([]byte(parts[1]), &meta)
+		if err != nil || meta.ID == "" {
+			fmt.Printf("❌ %s: Invalid YAML Schema parsing\n", file)
+		} else {
+			fmt.Printf("✔ %s [%s]: Schema Valid\n", file, meta.ID)
+		}
+	}
+}</code></pre>
+
+                    <!-- GitHub Action YAML Block -->
+                    <pre id="code-block-github-action" class="code-view hidden"><code class="text-blue-200"># Phase 2: GitHub Actions Workflow for PR Governance Compliance Linter
+name: "ADR Governance Linter"
+
+on:
+  pull_request:
+    branches: [ "main", "master" ]
+    paths:
+      - 'docs/architecture/decisions/**'
+
+jobs:
+  adr-governance-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go Runtime Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install ADR CLI Binary
+        run: |
+          go install github.com/enterprise/adr-cli@v1.0.4
+
+      - name: Execute Governance Rule Check
+        run: |
+          adr lint --config .adr/governance.yaml --sarif-out results.sarif
+
+      - name: Upload SARIF Security & Governance Artifacts
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif</code></pre>
+
+                    <!-- React Flow Component Block -->
+                    <pre id="code-block-react-flow" class="code-view hidden"><code class="text-purple-200">// Phase 3: React Flow Visual Decision Tree Graph Component
+import React, { useCallback } from 'react';
+import ReactFlow, { Background, Controls, Handle, Position } from 'reactflow';
+import 'reactflow/dist/style.css';
+
+const CustomADRNode = ({ data }: any) => {
+  return (
+    <div className={`p-3 rounded-lg border shadow-md font-sans text-xs ${
+      data.status === 'Accepted' ? 'bg-slate-900 border-emerald-500/50 text-emerald-300' :
+      data.status === 'Superseded' ? 'bg-slate-900 border-amber-500/50 text-amber-300' :
+      'bg-slate-900 border-blue-500/50 text-blue-300'
+    }`}>
+      <Handle type="target" position={Position.Top} />
+      <div className="font-mono font-bold">{data.id}</div>
+      <div className="text-white font-medium text-xs mt-1">{data.title}</div>
+      <div className="mt-2 text-[10px] opacity-75">{data.status}</div>
+      <Handle type="source" position={Position.Bottom} />
+    </div>
+  );
+};
+
+export function ADRDecisionGraph({ initialNodes, initialEdges }: any) {
+  return (
+    <div style={{ width: '100%', height: '500px' }}>
+      <ReactFlow nodes={initialNodes} edges={initialEdges} nodeTypes={{ adrNode: CustomADRNode }}>
+        <Background color="#334155" gap={16} />
+        <Controls />
+      </ReactFlow>
+    </div>
+  );
+}</code></pre>
+
+                    <!-- Python RAG Engine Block -->
+                    <pre id="code-block-python-rag" class="code-view hidden"><code class="text-emerald-200"># Phase 4: Python FastAPI RAG Vector Search Engine & AI Auto-Drafter
+import os
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from langchain_community.vectorstores import Qdrant
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain.chains import RetrievalQA
+
+app = FastAPI(title="ADR Architecture AI RAG Service")
+
+class QueryRequest(BaseModel):
+    prompt: str
+
+class DraftRequest(BaseModel):
+    raw_notes: str
+
+@app.post("/api/v1/query-adr")
+async def query_architecture_kb(req: QueryRequest):
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    vector_store = Qdrant.from_existing_collection(
+        embedding=embeddings,
+        collection_name="enterprise_adrs"
+    )
+    
+    llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
+    qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=vector_store.as_retriever())
+    
+    response = qa_chain.run(req.prompt)
+    return {"query": req.prompt, "answer": response}
+
+@app.post("/api/v1/auto-draft-adr")
+async def auto_draft_adr(req: DraftRequest):
+    llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
+    system_prompt = (
+        "You are an Enterprise Principal Architect. Convert the following meeting notes "
+        "into a valid YAML Frontmatter + Markdown Architecture Decision Record (ADR)."
+    )
+    result = llm.invoke(f"{system_prompt}\n\nNotes:\n{req.raw_notes}")
+    return {"markdown_adr": result.content}</code></pre>
+
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Application Logic Script -->
+    <script>
+        // Enterprise ADR Database In-Memory State
+        const adrDatabase = {
+            'ADR-0001': {
+                id: 'ADR-0001',
+                title: 'Use Event-Driven Kafka Architecture for Core Microservices',
+                status: 'Superseded',
+                date: '2025-03-12',
+                authors: ['Senthil Raj', 'Architecture Guild'],
+                tags: ['kafka', 'messaging', 'async'],
+                supersedes: [],
+                superseded_by: 'ADR-0002',
+                compliance_rules: [
+                    { rule_id: 'RULE-SEC-01', description: 'Requires async dead-letter queue' }
+                ],
+                content: `---
+id: ADR-0001
+title: Use Event-Driven Kafka Architecture for Core Microservices
+status: Superseded
+date: 2025-03-12
+authors: ["Senthil Raj", "Architecture Guild"]
+tags: ["kafka", "messaging", "async"]
+supersedes: []
+superseded_by: "ADR-0002"
+compliance_rules:
+  - rule_id: "RULE-SEC-01"
+    description: "Requires async dead-letter queue"
+---
+
+## Context
+High volume payment transactions require async event decoupler.
+
+## Decision
+We will deploy self-managed Apache Kafka cluster on AWS EC2.
+
+## Consequences
+- Requires high DevOps maintenance overhead.`
+            },
+            'ADR-0002': {
+                id: 'ADR-0002',
+                title: 'Adopt AWS Bedrock & Managed Serverless EventBridge',
+                status: 'Accepted',
+                date: '2026-01-15',
+                authors: ['Senthil Raj', 'Cloud Ops'],
+                tags: ['aws', 'bedrock', 'serverless', 'security'],
+                supersedes: ['ADR-0001'],
+                superseded_by: null,
+                compliance_rules: [
+                    { rule_id: 'RULE-SEC-01', description: 'Enforce KMS encryption at rest' }
+                ],
+                content: `---
+id: ADR-0002
+title: Adopt AWS Bedrock & Managed Serverless EventBridge
+status: Accepted
+date: 2026-01-15
+authors: ["Senthil Raj", "Cloud Ops"]
+tags: ["aws", "bedrock", "serverless", "security"]
+supersedes: ["ADR-0001"]
+superseded_by: null
+compliance_rules:
+  - rule_id: "RULE-SEC-01"
+    description: "Enforce KMS encryption at rest"
+---
+
+## Context
+Self-managed Kafka clusters created excessive operational drift.
+
+## Decision
+Migrate event bus streaming to AWS EventBridge and AI pipeline to AWS Bedrock.
+
+## Security Risk Assessment
+All payload endpoints use TLS 1.3 in-transit and AWS KMS CMK static encryption at rest.`
+            },
+            'ADR-0003': {
+                id: 'ADR-0003',
+                title: 'Postgres Aurora Database Consolidation Strategy',
+                status: 'Accepted',
+                date: '2026-02-10',
+                authors: ['Data Eng Team'],
+                tags: ['database', 'postgres', 'storage'],
+                supersedes: [],
+                superseded_by: null,
+                compliance_rules: [
+                    { rule_id: 'RULE-SEC-01', description: 'Database backup retention min 30 days' }
+                ],
+                content: `---
+id: ADR-0003
+title: Postgres Aurora Database Consolidation Strategy
+status: Accepted
+date: 2026-02-10
+authors: ["Data Eng Team"]
+tags: ["database", "postgres", "storage"]
+supersedes: []
+superseded_by: null
+compliance_rules:
+  - rule_id: "RULE-SEC-01"
+    description: "Database backup retention min 30 days"
+---
+
+## Context
+Multiple disparate MySQL instances caused transactional fragmentation.
+
+## Decision
+Consolidate transactional data into multi-tenant AWS Aurora Postgres Serverless v2.
+
+## Security Risk Assessment
+Database instances deployed inside isolated private VPC subnets with zero public IP accessibility.`
+            },
+            'ADR-0004': {
+                id: 'ADR-0004',
+                title: 'Redis Cluster Strategy for API Token Caching',
+                status: 'Proposed',
+                date: '2026-03-20',
+                authors: ['Senthil Raj'],
+                tags: ['cache', 'redis', 'security'],
+                supersedes: [],
+                superseded_by: null,
+                compliance_rules: [],
+                content: `---
+id: ADR-0004
+title: Redis Cluster Strategy for API Token Caching
+status: Proposed
+date: 2026-03-20
+authors: ["Senthil Raj"]
+tags: ["cache", "redis", "security"]
+supersedes: []
+superseded_by: null
+compliance_rules: []
+---
+
+## Context
+High API traffic requires sub-millisecond OAuth token validation.
+
+## Decision
+Deploy AWS ElastiCache for Redis Cluster with multi-AZ replication.`
+            },
+            'ADR-0005': {
+                id: 'ADR-0005',
+                title: 'OAuth2 & OpenID Connect Centralized IAM Strategy',
+                status: 'Accepted',
+                date: '2025-11-04',
+                authors: ['Security Guild'],
+                tags: ['security', 'iam', 'auth'],
+                supersedes: [],
+                superseded_by: null,
+                compliance_rules: [],
+                content: `---
+id: ADR-0005
+title: OAuth2 & OpenID Connect Centralized IAM Strategy
+status: Accepted
+date: 2025-11-04
+authors: ["Security Guild"]
+tags: ["security", "iam", "auth"]
+supersedes: []
+superseded_by: null
+compliance_rules: []
+---
+
+## Context
+Legacy JWT validation lacked instant revocation capabilities.
+
+## Decision
+Adopt OAuth2 OIDC authorization server with short-lived access tokens.
+
+## Security Risk Assessment
+Strict key rotation policy enforced every 30 days via Automated Lambda.`
+            }
+        };
+
+        // Initialize App on DOM Load
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            loadADRIntoEditor('ADR-0001');
+            renderSVGGraph();
+            renderKanbanBoard();
+            triggerLinterSimulation();
+            updateStatsCounters();
+        });
+
+        // Tab Navigation Switcher
+        function switchTab(tabId) {
+            document.querySelectorAll('.phase-panel').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.phase-panel').forEach(el => el.classList.remove('flex'));
+            
+            const activePanel = document.getElementById(`panel-${tabId}`);
+            activePanel.classList.remove('hidden');
+            activePanel.classList.add('flex');
+
+            document.querySelectorAll('.phase-tab').forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('text-slate-400');
+            });
+
+            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+            activeBtn.classList.add('bg-blue-600', 'text-white');
+            activeBtn.classList.remove('text-slate-400');
+
+            if (tabId === 'phase3') {
+                setTimeout(renderSVGGraph, 100);
+            }
+        }
+
+        // Stats Counter Updater
+        function updateStatsCounters() {
+            const keys = Object.keys(adrDatabase);
+            document.getElementById('stat-total-adrs').innerText = keys.length;
+            const accepted = keys.filter(k => adrDatabase[k].status === 'Accepted').length;
+            document.getElementById('stat-accepted-adrs').innerText = accepted;
+        }
+
+        /* ==========================================================================
+           PHASE 1 LOGIC: TERMINAL SIMULATOR & EDITOR
+           ========================================================================== */
+        function loadADRIntoEditor(adrId) {
+            const item = adrDatabase[adrId];
+            if (item) {
+                document.getElementById('adr-editor-content').value = item.content;
+                validateActiveEditorSchema();
+            }
+        }
+
+        function validateActiveEditorSchema() {
+            const raw = document.getElementById('adr-editor-content').value;
+            const statusEl = document.getElementById('schema-status');
+            
+            try {
+                const parts = raw.split('---');
+                if (parts.length >= 3) {
+                    const parsed = jsyaml.load(parts[1]);
+                    if (parsed && parsed.id && parsed.status && parsed.title) {
+                        statusEl.innerHTML = `<span class="text-emerald-400 font-sans flex items-center gap-1"><i data-lucide="check-circle" class="w-3 h-3"></i> Valid Schema (${parsed.id})</span>`;
+                        lucide.createIcons();
+                        return true;
+                    }
+                }
+                throw new Error("Missing required schema fields");
+            } catch (err) {
+                statusEl.innerHTML = `<span class="text-red-400 font-sans flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3 h-3"></i> Invalid Schema</span>`;
+                lucide.createIcons();
+                return false;
+            }
+        }
+
+        function printToTerminal(text, type = 'normal') {
+            const term = document.getElementById('terminal-output');
+            const line = document.createElement('div');
+            
+            if (type === 'cmd') {
+                line.className = 'text-blue-400 mt-2 font-bold';
+                line.textContent = `$ ${text}`;
+            } else if (type === 'success') {
+                line.className = 'text-emerald-400';
+                line.textContent = text;
+            } else if (type === 'error') {
+                line.className = 'text-red-400';
+                line.textContent = text;
+            } else if (type === 'warn') {
+                line.className = 'text-amber-300';
+                line.textContent = text;
+            } else {
+                line.className = 'text-slate-300';
+                line.textContent = text;
+            }
+            
+            term.appendChild(line);
+            term.scrollTop = term.scrollHeight;
+        }
+
+        function clearTerminal() {
+            document.getElementById('terminal-output').innerHTML = '<div class="text-slate-500"># Terminal Cleared. Engine Ready.</div>';
+        }
+
+        function runCommand(cmdText) {
+            printToTerminal(cmdText, 'cmd');
+            const args = cmdText.trim().split(' ');
+            const mainCmd = args[0];
+            const subCmd = args[1];
+
+            if (mainCmd !== 'adr') {
+                printToTerminal(`Command not recognized: ${mainCmd}. Type 'adr help'`, 'error');
+                return;
+            }
+
+            if (!subCmd || subCmd === 'help') {
+                printToTerminal('Available CLI Commands:');
+                printToTerminal('  adr init              - Initialize .adr directory structure');
+                printToTerminal('  adr new <title>       - Generate new numbered Markdown ADR');
+                printToTerminal('  adr lint              - Validate YAML schema across all ADRs');
+                printToTerminal('  adr supersede <A> <B> - Mark ADR A superseded by ADR B');
+                printToTerminal('  adr graph             - Export SVG decision dependency tree');
+                return;
+            }
+
+            if (subCmd === 'init') {
+                printToTerminal('✔ Directory structure verified: ./docs/architecture/decisions/', 'success');
+                printToTerminal('✔ Governance configuration loaded from .adr/governance.yaml', 'success');
+            } else if (subCmd === 'new') {
+                const titleStr = args.slice(2).join(' ').replace(/"/g, '') || 'New Architectural Component';
+                const nextNum = Object.keys(adrDatabase).length + 1;
+                const newId = `ADR-${String(nextNum).padStart(4, '0')}`;
+                
+                const newDoc = {
+                    id: newId,
+                    title: titleStr,
+                    status: 'Proposed',
+                    date: new Date().toISOString().split('T')[0],
+                    authors: ['Current User'],
+                    tags: ['architecture'],
+                    supersedes: [],
+                    superseded_by: null,
+                    compliance_rules: [],
+                    content: `---\nid: ${newId}\ntitle: ${titleStr}\nstatus: Proposed\ndate: ${new Date().toISOString().split('T')[0]}\nauthors: ["Current User"]\ntags: ["architecture"]\nsupersedes: []\nsuperseded_by: null\n---\n\n## Context\nDescribe problem...\n\n## Decision\nDescribe solution...`
+                };
+                
+                adrDatabase[newId] = newDoc;
+                
+                // Add to selector dropdown
+                const sel = document.getElementById('adr-selector');
+                const opt = document.createElement('option');
+                opt.value = newId;
+                opt.textContent = `${newId}: ${titleStr}`;
+                sel.appendChild(opt);
+                sel.value = newId;
+                
+                loadADRIntoEditor(newId);
+                renderSVGGraph();
+                renderKanbanBoard();
+                updateStatsCounters();
+
+                printToTerminal(`✔ Created file: ./docs/architecture/decisions/${newId.toLowerCase()}.md`, 'success');
+                printToTerminal(`✔ Default YAML Frontmatter generated with status: Proposed`, 'normal');
+            } else if (subCmd === 'lint') {
+                printToTerminal('Running enterprise frontmatter validation linter...', 'normal');
+                let count = 0;
+                for (let key in adrDatabase) {
+                    printToTerminal(`  ✔ [PASS] ${key} - Schema valid (${adrDatabase[key].title.substring(0,30)}...)`, 'success');
+                    count++;
+                }
+                printToTerminal(`Linter Complete: ${count}/${count} ADRs compliant. 0 errors found.`, 'success');
+            } else if (subCmd === 'supersede') {
+                const targetA = args[2] || 'ADR-0001';
+                const targetB = args[3] || 'ADR-0002';
+                
+                if (adrDatabase[targetA] && adrDatabase[targetB]) {
+                    adrDatabase[targetA].status = 'Superseded';
+                    adrDatabase[targetA].superseded_by = targetB;
+                    adrDatabase[targetB].supersedes = [targetA];
+                    
+                    renderSVGGraph();
+                    renderKanbanBoard();
+                    printToTerminal(`✔ Status Updated: ${targetA} marked as SUPERSEDED by ${targetB}`, 'warn');
+                } else {
+                    printToTerminal(`Error: Specified ADR IDs not found`, 'error');
+                }
+            } else if (subCmd === 'graph') {
+                printToTerminal('✔ SVG Decision Graph rendered in Phase 3 View.', 'success');
+                switchTab('phase3');
+            } else {
+                printToTerminal(`Unknown subcommand: ${subCmd}`, 'error');
+            }
+        }
+
+        function handleTerminalKey(e) {
+            if (e.key === 'Enter') {
+                submitTerminalInput();
+            }
+        }
+
+        function submitTerminalInput() {
+            const input = document.getElementById('terminal-input');
+            const val = input.value.trim();
+            if (val) {
+                runCommand(val);
+                input.value = '';
+            }
+        }
+
+        /* ==========================================================================
+           PHASE 2 LOGIC: CI/CD GOVERNANCE LINTER SIMULATOR
+           ========================================================================== */
+        function triggerLinterSimulation() {
+            const container = document.getElementById('linter-results-container');
+            const statusBadge = document.getElementById('pipeline-status-badge');
+            container.innerHTML = '';
+
+            const checkSecRule = document.getElementById('toggle-rule-sec').checked;
+            const checkCloudRule = document.getElementById('toggle-rule-cloud').checked;
+
+            let hasErrors = false;
+            const activeADR = adrDatabase['ADR-0004']; // Use ADR-0004 Proposed as PR test subject
+
+            // Test Rule 1: Frontmatter Validity
+            container.innerHTML += `
+                <div class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800">
+                    <span class="text-slate-300">Rule [RULE-FMT-01]: YAML Frontmatter Integrity</span>
+                    <span class="text-emerald-400 font-bold font-mono">PASSED</span>
+                </div>`;
+
+            // Test Rule 2: Security Assessment Section Check
+            if (checkSecRule) {
+                const hasSecSection = activeADR.content.includes("Security Risk Assessment");
+                if (hasSecSection) {
+                    container.innerHTML += `
+                        <div class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800">
+                            <span class="text-slate-300">Rule [RULE-SEC-01]: Required 'Security Risk Assessment' Section</span>
+                            <span class="text-emerald-400 font-bold font-mono">PASSED</span>
+                        </div>`;
+                } else {
+                    hasErrors = true;
+                    container.innerHTML += `
+                        <div class="flex items-start justify-between p-2 rounded bg-red-950/30 border border-red-500/30">
+                            <div>
+                                <div class="text-red-400 font-bold">Rule [RULE-SEC-01]: Missing Required Section</div>
+                                <div class="text-slate-400 text-[11px] mt-0.5">ADR-0004 has 'security' tag but lacks ## Security Risk Assessment heading.</div>
+                            </div>
+                            <span class="text-red-400 font-bold font-mono">FAILED</span>
+                        </div>`;
+                }
+            }
+
+            // Test Rule 3: Deprecated ADR Status Check
+            if (checkCloudRule) {
+                container.innerHTML += `
+                    <div class="flex items-center justify-between p-2 rounded bg-slate-950 border border-slate-800">
+                        <span class="text-slate-300">Rule [RULE-LFC-02]: No Deprecated ADRs in Production PR</span>
+                        <span class="text-emerald-400 font-bold font-mono">PASSED</span>
+                    </div>`;
+            }
+
+            if (hasErrors) {
+                statusBadge.className = "px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-red-500/10 text-red-400 border border-red-500/30";
+                statusBadge.innerText = "PIPELINE FAILED";
+            } else {
+                statusBadge.className = "px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
+                statusBadge.innerText = "PIPELINE PASSED";
+            }
+        }
+
+        function resetPolicyRules() {
+            document.getElementById('toggle-rule-sec').checked = true;
+            document.getElementById('toggle-rule-cloud').checked = true;
+            triggerLinterSimulation();
+        }
+
+        function exportSARIF() {
+            const sarifReport = {
+                "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+                "version": "2.1.0",
+                "runs": [{
+                    "tool": { "driver": { "name": "ADR-Governance-Linter", "version": "1.0.4" } },
+                    "results": [{
+                        "ruleId": "RULE-SEC-01",
+                        "message": { "text": "ADR Frontmatter compliance check passed." }
+                    }]
+                }]
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sarifReport, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "adr-results.sarif");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        /* ==========================================================================
+           PHASE 3 LOGIC: SVG DECISION GRAPH & KANBAN
+           ========================================================================== */
+        function setPhase3View(view) {
+            const graphContainer = document.getElementById('phase3-graph-container');
+            const kanbanContainer = document.getElementById('phase3-kanban-container');
+            const btnGraph = document.getElementById('btn-view-graph');
+            const btnKanban = document.getElementById('btn-view-kanban');
+
+            if (view === 'graph') {
+                graphContainer.classList.remove('hidden');
+                kanbanContainer.classList.add('hidden');
+                kanbanContainer.classList.remove('grid');
+                btnGraph.className = "px-3 py-1 bg-blue-600 text-white rounded text-xs font-medium shadow-sm transition";
+                btnKanban.className = "px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-medium transition";
+                renderSVGGraph();
+            } else {
+                graphContainer.classList.add('hidden');
+                kanbanContainer.classList.remove('hidden');
+                kanbanContainer.classList.add('grid');
+                btnKanban.className = "px-3 py-1 bg-blue-600 text-white rounded text-xs font-medium shadow-sm transition";
+                btnGraph.className = "px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs font-medium transition";
+                renderKanbanBoard();
+            }
+        }
+
+        function renderSVGGraph(filterStatus = 'ALL') {
+            const svg = document.getElementById('adr-svg-graph');
+            svg.innerHTML = ''; // Clear SVG
+
+            const items = Object.values(adrDatabase);
+            const positions = {
+                'ADR-0001': { x: 120, y: 120 },
+                'ADR-0002': { x: 420, y: 120 },
+                'ADR-0003': { x: 120, y: 320 },
+                'ADR-0004': { x: 420, y: 320 },
+                'ADR-0005': { x: 720, y: 220 }
+            };
+
+            // Draw connecting directional edges
+            items.forEach(item => {
+                if (item.superseded_by && positions[item.id] && positions[item.superseded_by]) {
+                    const start = positions[item.id];
+                    const end = positions[item.superseded_by];
+                    
+                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute("x1", start.x + 80);
+                    line.setAttribute("y1", start.y + 35);
+                    line.setAttribute("x2", end.x + 80);
+                    line.setAttribute("y2", end.y + 35);
+                    line.setAttribute("stroke", "#f59e0b");
+                    line.setAttribute("stroke-width", "2");
+                    line.setAttribute("stroke-dasharray", "6,6");
+                    svg.appendChild(line);
+                }
+            });
+
+            // Draw ADR Nodes
+            items.forEach((item, index) => {
+                if (filterStatus !== 'ALL' && item.status !== filterStatus) return;
+
+                const pos = positions[item.id] || { x: 100 + (index * 150), y: 200 };
+                
+                let strokeColor = "#3b82f6";
+                let badgeColor = "#3b82f6";
+                if (item.status === 'Accepted') { strokeColor = "#10b981"; badgeColor = "#10b981"; }
+                if (item.status === 'Superseded') { strokeColor = "#f59e0b"; badgeColor = "#f59e0b"; }
+                if (item.status === 'Deprecated') { strokeColor = "#ef4444"; badgeColor = "#ef4444"; }
+
+                const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                g.setAttribute("transform", `translate(${pos.x}, ${pos.y})`);
+                g.setAttribute("class", "cursor-pointer");
+                g.onclick = () => {
+                    switchTab('phase1');
+                    document.getElementById('adr-selector').value = item.id;
+                    loadADRIntoEditor(item.id);
+                };
+
+                // Node background rect
+                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                rect.setAttribute("width", "220");
+                rect.setAttribute("height", "70");
+                rect.setAttribute("rx", "10");
+                rect.setAttribute("fill", "#0f172a");
+                rect.setAttribute("stroke", strokeColor);
+                rect.setAttribute("stroke-width", "1.5");
+                g.appendChild(rect);
+
+                // ID Text
+                const idText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                idText.setAttribute("x", "15");
+                idText.setAttribute("y", "25");
+                idText.setAttribute("fill", badgeColor);
+                idText.setAttribute("font-family", "monospace");
+                idText.setAttribute("font-size", "11");
+                idText.setAttribute("font-weight", "bold");
+                idText.textContent = `${item.id} • ${item.status}`;
+                g.appendChild(idText);
+
+                // Title Text
+                const titleText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                titleText.setAttribute("x", "15");
+                titleText.setAttribute("y", "48");
+                titleText.setAttribute("fill", "#ffffff");
+                titleText.setAttribute("font-family", "sans-serif");
+                titleText.setAttribute("font-size", "11");
+                
+                let shortTitle = item.title;
+                if (shortTitle.length > 25) shortTitle = shortTitle.substring(0, 22) + '...';
+                titleText.textContent = shortTitle;
+                g.appendChild(titleText);
+
+                svg.appendChild(g);
+            });
+        }
+
+        function filterADRGraph(status) {
+            renderSVGGraph(status);
+        }
+
+        function renderKanbanBoard() {
+            const cols = {
+                'Proposed': document.getElementById('kanban-proposed'),
+                'Accepted': document.getElementById('kanban-accepted'),
+                'Superseded': document.getElementById('kanban-superseded'),
+                'Deprecated': document.getElementById('kanban-deprecated')
+            };
+
+            Object.values(cols).forEach(c => c.innerHTML = '');
+
+            const items = Object.values(adrDatabase);
+            
+            // Update counter badges
+            document.getElementById('count-proposed').innerText = items.filter(i => i.status === 'Proposed').length;
+            document.getElementById('count-accepted').innerText = items.filter(i => i.status === 'Accepted').length;
+            document.getElementById('count-superseded').innerText = items.filter(i => i.status === 'Superseded').length;
+            document.getElementById('count-deprecated').innerText = items.filter(i => i.status === 'Deprecated').length;
+
+            items.forEach(item => {
+                const col = cols[item.status] || cols['Proposed'];
+                const card = document.createElement('div');
+                card.className = "bg-slate-950 border border-slate-800 rounded-lg p-3 space-y-2 hover:border-slate-700 transition cursor-pointer";
+                card.onclick = () => {
+                    switchTab('phase1');
+                    document.getElementById('adr-selector').value = item.id;
+                    loadADRIntoEditor(item.id);
+                };
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="font-mono text-xs font-bold text-white">${item.id}</span>
+                        <span class="text-[10px] text-slate-400 font-mono">${item.date}</span>
+                    </div>
+                    <div class="text-xs text-slate-200 font-medium line-clamp-2">${item.title}</div>
+                    <div class="flex flex-wrap gap-1 pt-1">
+                        ${item.tags.map(t => `<span class="text-[9px] font-mono bg-slate-900 border border-slate-800 text-slate-400 px-1.5 py-0.5 rounded">${t}</span>`).join('')}
+                    </div>
+                    <div class="pt-2 border-t border-slate-900 flex items-center justify-between text-[10px]">
+                        <span class="text-slate-400">Move Status:</span>
+                        <select onclick="event.stopPropagation()" onchange="updateADRStatus('${item.id}', this.value)" class="bg-slate-900 border border-slate-800 text-slate-200 rounded px-1 py-0.5 font-mono text-[10px]">
+                            <option value="Proposed" ${item.status === 'Proposed' ? 'selected' : ''}>Proposed</option>
+                            <option value="Accepted" ${item.status === 'Accepted' ? 'selected' : ''}>Accepted</option>
+                            <option value="Superseded" ${item.status === 'Superseded' ? 'selected' : ''}>Superseded</option>
+                            <option value="Deprecated" ${item.status === 'Deprecated' ? 'selected' : ''}>Deprecated</option>
+                        </select>
+                    </div>
+                `;
+                col.appendChild(card);
+            });
+        }
+
+        function updateADRStatus(adrId, newStatus) {
+            if (adrDatabase[adrId]) {
+                adrDatabase[adrId].status = newStatus;
+                // Sync markdown frontmatter status field
+                let content = adrDatabase[adrId].content;
+                content = content.replace(/status:\s*\w+/, `status: ${newStatus}`);
+                adrDatabase[adrId].content = content;
+
+                renderKanbanBoard();
+                renderSVGGraph();
+                updateStatsCounters();
+            }
+        }
+
+        /* ==========================================================================
+           PHASE 4 LOGIC: AI ASSISTANT & AUTO-DRAFTER
+           ========================================================================== */
+        function askAIPrompt(promptText) {
+            document.getElementById('ai-chat-input').value = promptText;
+            sendAIChatQuery();
+        }
+
+        function handleAIKey(e) {
+            if (e.key === 'Enter') sendAIChatQuery();
+        }
+
+        function sendAIChatQuery() {
+            const input = document.getElementById('ai-chat-input');
+            const query = input.value.trim();
+            if (!query) return;
+
+            const logs = document.getElementById('ai-chat-logs');
+            
+            // Append User Question
+            logs.innerHTML += `
+                <div class="flex items-start justify-end space-x-3">
+                    <div class="bg-purple-600 text-white rounded-lg p-3 max-w-[85%] text-xs">
+                        ${query}
+                    </div>
+                </div>`;
+
+            input.value = '';
+            logs.scrollTop = logs.scrollHeight;
+
+            // Generate Simulated AI RAG Response
+            setTimeout(() => {
+                let aiAnswer = "Based on vector search across your indexed ADRs: ";
+                if (query.toLowerCase().includes('kafka')) {
+                    aiAnswer = "Kafka was initially adopted in **ADR-0001** for core microservices event handling. However, it was **superseded by ADR-0002**, which migrated streaming to AWS Bedrock & EventBridge to reduce DevOps infrastructure maintenance overhead.";
+                } else if (query.toLowerCase().includes('database') || query.toLowerCase().includes('conflic')) {
+                    aiAnswer = "I reviewed **ADR-0003 (Postgres Aurora)** and **ADR-0004 (Redis Caching)**. There are no direct architectural conflicts. Postgres handles relational ACID data storage while Redis is designated for sub-millisecond OAuth token caching.";
+                } else {
+                    aiAnswer = `I searched 5 indexed enterprise ADR files. Related decisions indicate active compliance with **ADR-0002** (AWS Bedrock & Serverless) and **ADR-0005** (OAuth2/OIDC Security).`;
+                }
+
+                logs.innerHTML += `
+                    <div class="flex items-start space-x-3">
+                        <div class="p-2 rounded-lg bg-purple-600/20 text-purple-400 border border-purple-500/30 flex-shrink-0">
+                            <i data-lucide="bot" class="w-4 h-4"></i>
+                        </div>
+                        <div class="bg-slate-900 border border-slate-800 rounded-lg p-3 text-slate-200 max-w-[85%]">
+                            ${aiAnswer}
+                        </div>
+                    </div>`;
+                lucide.createIcons();
+                logs.scrollTop = logs.scrollHeight;
+            }, 600);
+        }
+
+        function generateADRFromNotes() {
+            const notes = document.getElementById('ai-draft-notes').value;
+            const output = document.getElementById('ai-draft-output');
+            
+            output.value = "AI Engine generating structured Markdown & YAML schema...";
+
+            setTimeout(() => {
+                const generated = `---
+id: ADR-0006
+title: Adopt Redis Cluster for Session Caching & Rate Limiting
+status: Proposed
+date: ${new Date().toISOString().split('T')[0]}
+authors: ["Senthil Raj"]
+tags: ["redis", "cache", "security", "performance"]
+supersedes: []
+superseded_by: null
+compliance_rules:
+  - rule_id: "RULE-SEC-01"
+    description: "Enforce TLS in-transit and KMS static key encryption"
+---
+
+## Context
+User authorization middleware requires sub-millisecond response times for OAuth token validation to eliminate backend database bottlenecks.
+
+## Decision
+We will deploy AWS ElastiCache for Redis Cluster v7 across multi-AZ availability zones managed by Cloud DevOps.
+
+## Security Risk Assessment
+1. TLS in-transit encryption enabled for all cache nodes.
+2. AWS KMS Customer Managed Keys (CMK) configured for static data encryption.
+
+## Consequences
+- Cost impact: Adds approximately $350/month in cloud infrastructure spend.
+- Positive impact: Removes database CPU spikes during flash traffic events.`;
+
+                output.value = generated;
+            }, 800);
+        }
+
+        function copyGeneratedDraft() {
+            const text = document.getElementById('ai-draft-output').value;
+            if (!text) return;
+            const temp = document.createElement('textarea');
+            temp.value = text;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            alert("Generated ADR draft copied to clipboard!");
+        }
+
+        /* ==========================================================================
+           SOURCE CODE VAULT TAB SWITCHER
+           ========================================================================== */
+        function switchCodeTab(codeId) {
+            document.querySelectorAll('.code-view').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`code-block-${codeId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.code-tab').forEach(btn => {
+                btn.className = "code-tab px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded";
+            });
+
+            const activeBtn = document.getElementById(`code-btn-${codeId}`);
+            activeBtn.className = "code-tab px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded";
+        }
+    </script>
+</body>
+</html>
